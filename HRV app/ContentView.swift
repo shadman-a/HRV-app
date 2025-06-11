@@ -1,55 +1,29 @@
-//
-//  ContentView.swift
-//  HRV app
-//
-//  Created by Shadman Ahmed on 6/11/25.
-//
-
 import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @StateObject private var dataManager = AppDataManager()
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        NavigationStack {
+            List(dataManager.dataPoints) { point in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(point.title)
+                        .font(.headline)
+                    Text(point.value)
+                        .font(.subheadline)
+                    Text(point.timestamp, style: .time)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                .onDelete(perform: deleteItems)
+                .padding(4)
             }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
+            .navigationTitle("Health Snapshot")
+            .onAppear {
+                dataManager.requestAuthorization()
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            .refreshable {
+                await dataManager.refreshAll()
             }
         }
     }

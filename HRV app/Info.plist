@@ -2,9 +2,17 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
+        <key>UIBackgroundModes</key>
+        <array>
+                <string>remote-notification</string>
+        </array>
+        <key>NSHealthShareUsageDescription</key>
+        <string>This app reads your health data to display wellness metrics.</string>
+        <key>NSHealthUpdateUsageDescription</key>
+        <string>This app updates your health data.</string>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Location is used to suggest nearby wellness activities.</string>
+        <key>NSCalendarsUsageDescription</key>
+        <string>Calendar access is required to show upcoming events.</string>
 </dict>
 </plist>
