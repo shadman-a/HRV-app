@@ -4,6 +4,7 @@ import EventKit
 import CoreLocation
 import WeatherKit
 import SwiftUI
+import Combine
 
 @MainActor
 class AppDataManager: NSObject, ObservableObject {
@@ -25,7 +26,7 @@ class AppDataManager: NSObject, ObservableObject {
             HKObjectType.quantityType(forIdentifier: .heartRateVariabilitySDNN)!,
             HKObjectType.quantityType(forIdentifier: .restingHeartRate)!,
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis)!,
-            HKObjectType.quantityType(forIdentifier: .mindfulSessionDuration)!,
+            HKObjectType.categoryType(forIdentifier: .mindfulSession)!,
             HKObjectType.quantityType(forIdentifier: .stepCount)!,
             HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!
         ]
@@ -83,7 +84,6 @@ class AppDataManager: NSObject, ObservableObject {
         guard let location = locationManager.location else { return }
         do {
             let weather = try await weatherService.weather(for: location)
-            let aqi = try? await weatherService.airQuality(for: location)
             let formatter = MeasurementFormatter()
             formatter.unitOptions = .temperatureWithoutUnit
             let temp = formatter.string(from: weather.currentWeather.temperature)
@@ -92,9 +92,6 @@ class AppDataManager: NSObject, ObservableObject {
             let now = Date()
             await MainActor.run {
                 self.dataPoints.append(DataPoint(title: "Weather", value: weatherValue, timestamp: now))
-                if let aqiValue = aqi?.index?.value {
-                    self.dataPoints.append(DataPoint(title: "Air Quality", value: String(aqiValue), timestamp: now))
-                }
             }
         } catch {
             // Handle errors silently for now
