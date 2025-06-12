@@ -58,26 +58,128 @@ class AppDataManager: NSObject, ObservableObject {
         var newPoints: [DataPoint] = []
         let now = Date()
 
-        // Placeholder queries; real implementations would query HealthKit
-        let hrv = "--" // Query HRV from HealthKit
+        let hrv = await fetchMostRecentQuantity(
+            identifier: .heartRateVariabilitySDNN,
+            unit: .second(),
+            format: { "\(Int($0 * 1000)) ms" }
+        )
         newPoints.append(DataPoint(title: "HRV", value: hrv, timestamp: now))
 
-        let restingHR = "--" // Query resting HR
+        let restingHR = await fetchMostRecentQuantity(
+            identifier: .restingHeartRate,
+            unit: HKUnit.count().unitDivided(by: .minute()),
+            format: { "\(Int($0.rounded())) bpm" }
+        )
         newPoints.append(DataPoint(title: "Resting HR", value: restingHR, timestamp: now))
 
-        let sleep = "--" // Query sleep duration
+        let sleep = await fetchSleepHours()
         newPoints.append(DataPoint(title: "Sleep", value: sleep, timestamp: now))
 
-        let mindful = "--" // Query mindful minutes
+        let mindful = await fetchMindfulMinutes()
         newPoints.append(DataPoint(title: "Mindful Minutes", value: mindful, timestamp: now))
 
-        let steps = "--" // Query step count
+        let steps = await fetchSumQuantity(
+            identifier: .stepCount,
+            unit: .count(),
+            format: { String(Int($0)) }
+        )
         newPoints.append(DataPoint(title: "Steps", value: steps, timestamp: now))
 
-        let energy = "--" // Query active energy
+        let energy = await fetchSumQuantity(
+            identifier: .activeEnergyBurned,
+            unit: .kilocalorie(),
+            format: { "\(Int($0)) kcal" }
+        )
         newPoints.append(DataPoint(title: "Active Energy", value: energy, timestamp: now))
 
         await MainActor.run { self.dataPoints = newPoints }
+    }
+
+    private func fetchMostRecentQuantity(
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        format: @escaping (Double) -> String
+    ) async -> String {
+        guard let type = HKObjectType.quantityType(forIdentifier: identifier) else { return "--" }
+
+        return await withCheckedContinuation { continuation in
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+            let query = HKSampleQuery(sampleType: type, predicate: nil, limit: 1, sortDescriptors: [sort]) { _, samples, error in
+                if let sample = samples?.first as? HKQuantitySample {
+                    let value = sample.quantity.doubleValue(for: unit)
+                    continuation.resume(returning: format(value))
+                } else {
+                    continuation.resume(returning: "--")
+                }
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchSumQuantity(
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        format: @escaping (Double) -> String
+    ) async -> String {
+        guard let type = HKObjectType.quantityType(forIdentifier: identifier) else { return "--" }
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, _ in
+                if let sum = stats?.sumQuantity() {
+                    let value = sum.doubleValue(for: unit)
+                    continuation.resume(returning: format(value))
+                } else {
+                    continuation.resume(returning: "--")
+                }
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchSleepHours() async -> String {
+        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return "--" }
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample] else {
+                    continuation.resume(returning: "--")
+                    return
+                }
+                let asleepValue = HKCategoryValueSleepAnalysis.asleep.rawValue
+                let total = samples
+                    .filter { $0.value == asleepValue }
+                    .reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                let hours = total / 3600.0
+                continuation.resume(returning: String(format: "%.1f h", hours))
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    private func fetchMindfulMinutes() async -> String {
+        guard let type = HKObjectType.categoryType(forIdentifier: .mindfulSession) else { return "--" }
+        let now = Date()
+        let startOfDay = Calendar.current.startOfDay(for: now)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: now, options: .strictStartDate)
+
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(sampleType: type, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample] else {
+                    continuation.resume(returning: "--")
+                    return
+                }
+                let total = samples.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                let minutes = Int(total / 60.0)
+                continuation.resume(returning: "\(minutes) min")
+            }
+            healthStore.execute(query)
+        }
     }
 
     private func refreshWeather() async {
