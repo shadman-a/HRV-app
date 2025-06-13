@@ -11,13 +11,27 @@ struct SnapshotView: View {
         return nil
     }
 
+    private var restingHR: Double? {
+        if let point = dataManager.dataPoints.first(where: { $0.title == "Resting HR" }) {
+            let value = point.value.replacingOccurrences(of: " bpm", with: "")
+            return Double(value)
+        }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                if let value = hrvValue {
-                    HRVGaugeView(hrv: value)
-                        .frame(maxWidth: .infinity)
-                        .listRowInsets(EdgeInsets())
+                if let hrv = hrvValue {
+                    HStack {
+                        HRVGaugeView(hrv: hrv)
+                        if let hr = restingHR {
+                            Spacer()
+                            HeartRateGaugeView(heartRate: hr)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .listRowInsets(EdgeInsets())
                 }
                 ForEach(dataManager.dataPoints) { point in
                     VStack(alignment: .leading, spacing: 4) {

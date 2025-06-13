@@ -17,11 +17,34 @@ struct HRVGaugeView: View {
             gradient: Gradient(colors: [.green, .yellow, .orange, .red]),
             center: .center)
         )
-        // Slightly larger to better fill the list card
-        .frame(width: 200, height: 200)
+        .frame(width: 150, height: 150)
+    }
+}
+
+/// Circular gauge to visualize Resting Heart Rate.
+struct HeartRateGaugeView: View {
+    /// Resting heart rate in beats per minute
+    let heartRate: Double
+
+    var body: some View {
+        Gauge(value: heartRate, in: 40...120) {
+            Text("Resting HR")
+        } currentValueLabel: {
+            Text("\(Int(heartRate)) bpm")
+                .font(.headline)
+        }
+        .gaugeStyle(.accessoryCircular)
+        .tint(AngularGradient(
+            gradient: Gradient(colors: [.green, .yellow, .orange, .red]),
+            center: .center)
+        )
+        .frame(width: 150, height: 150)
     }
 }
 
 #Preview {
-    HRVGaugeView(hrv: 65)
+    VStack {
+        HRVGaugeView(hrv: 65)
+        HeartRateGaugeView(heartRate: 60)
+    }
 }
