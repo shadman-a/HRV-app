@@ -15,10 +15,9 @@ struct SnapshotView: View {
         NavigationStack {
             List {
                 if let value = hrvValue {
-                    Section {
-                        HRVGaugeView(hrv: value)
-                            .frame(maxWidth: .infinity)
-                    }
+                    HRVGaugeView(hrv: value)
+                        .frame(maxWidth: .infinity)
+                        .listRowInsets(EdgeInsets())
                 }
                 ForEach(dataManager.dataPoints) { point in
                     VStack(alignment: .leading, spacing: 4) {
