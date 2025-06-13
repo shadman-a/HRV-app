@@ -3,19 +3,34 @@ import SwiftUI
 struct SnapshotView: View {
     @ObservedObject var dataManager: AppDataManager
 
+    private var restingHR: Double? {
+        if let point = dataManager.dataPoints.first(where: { $0.title == "Resting HR" }) {
+            let value = point.value.replacingOccurrences(of: " bpm", with: "")
+            return Double(value)
+        }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
-            List(dataManager.dataPoints) { point in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(point.title)
-                        .font(.headline)
-                    Text(point.value)
-                        .font(.subheadline)
-                    Text(point.timestamp, style: .time)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+            List {
+                if let hr = restingHR {
+                    Section {
+                        HStack { Spacer(); HeartRateGaugeView(heartRate: hr); Spacer() }
+                    }
                 }
-                .padding(4)
+                ForEach(dataManager.dataPoints) { point in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(point.title)
+                            .font(.headline)
+                        Text(point.value)
+                            .font(.subheadline)
+                        Text(point.timestamp, style: .time)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(4)
+                }
             }
             .navigationTitle("Health Snapshot")
             .onAppear {
