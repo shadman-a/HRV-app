@@ -3,9 +3,9 @@ import SwiftUI
 struct SnapshotView: View {
     @ObservedObject var dataManager: AppDataManager
 
-    private var restingHR: Double? {
-        if let point = dataManager.dataPoints.first(where: { $0.title == "Resting HR" }) {
-            let value = point.value.replacingOccurrences(of: " bpm", with: "")
+    private var hrvValue: Double? {
+        if let point = dataManager.dataPoints.first(where: { $0.title == "HRV" }) {
+            let value = point.value.replacingOccurrences(of: " ms", with: "")
             return Double(value)
         }
         return nil
@@ -14,9 +14,10 @@ struct SnapshotView: View {
     var body: some View {
         NavigationStack {
             List {
-                if let hr = restingHR {
+                if let value = hrvValue {
                     Section {
-                        HStack { Spacer(); HeartRateGaugeView(heartRate: hr); Spacer() }
+                        HRVGaugeView(hrv: value)
+                            .frame(maxWidth: .infinity)
                     }
                 }
                 ForEach(dataManager.dataPoints) { point in
