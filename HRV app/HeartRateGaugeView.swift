@@ -1,13 +1,15 @@
 import SwiftUI
 
-struct HeartRateGaugeView: View {
-    let heartRate: Double
+/// Circular gauge to visualize Heart Rate Variability (HRV).
+struct HRVGaugeView: View {
+    /// HRV value in milliseconds
+    let hrv: Double
 
     var body: some View {
-        Gauge(value: heartRate, in: 40...120) {
-            Text("Resting HR")
+        Gauge(value: hrv, in: 0...200) {
+            Text("HRV")
         } currentValueLabel: {
-            Text("\(Int(heartRate)) bpm")
+            Text("\(Int(hrv)) ms")
                 .font(.headline)
         }
         .gaugeStyle(.accessoryCircular)
@@ -15,10 +17,11 @@ struct HeartRateGaugeView: View {
             gradient: Gradient(colors: [.green, .yellow, .orange, .red]),
             center: .center)
         )
-        .frame(width: 150, height: 150)
+        // Slightly larger to better fill the list card
+        .frame(width: 200, height: 200)
     }
 }
 
 #Preview {
-    HeartRateGaugeView(heartRate: 65)
+    HRVGaugeView(hrv: 65)
 }
