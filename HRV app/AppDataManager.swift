@@ -40,6 +40,18 @@ class AppDataManager: NSObject, ObservableObject {
     func setHRVHistory(_ records: [HRVRecord]) {
         self.hrvHistory = records
     }
+
+    /// Sample manager with pre-populated HRV history for previews.
+    static var preview: AppDataManager {
+        let manager = AppDataManager()
+        manager.setHRVHistory([
+            HRVRecord(date: .now.addingTimeInterval(-3600*24*4), value: 60),
+            HRVRecord(date: .now.addingTimeInterval(-3600*24*3), value: 55),
+            HRVRecord(date: .now.addingTimeInterval(-3600*24*2), value: 70),
+            HRVRecord(date: .now.addingTimeInterval(-3600*24), value: 65)
+        ])
+        return manager
+    }
 #endif
 
     func requestAuthorization() {
