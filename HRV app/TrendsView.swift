@@ -27,5 +27,5 @@ struct TrendsView: View {
         HRVRecord(date: .now.addingTimeInterval(-3600*24*2), value: 70),
         HRVRecord(date: .now.addingTimeInterval(-3600*24), value: 65)
     ]
-    return TrendsView(dataManager: dm)
+    TrendsView(dataManager: dm)
 }
