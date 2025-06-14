@@ -35,6 +35,13 @@ class AppDataManager: NSObject, ObservableObject {
         }
     }
 
+#if DEBUG
+    /// Allows previews and tests to provide sample HRV history data.
+    func setHRVHistory(_ records: [HRVRecord]) {
+        self.hrvHistory = records
+    }
+#endif
+
     func requestAuthorization() {
         // HealthKit types
         let healthTypes: Set = [
