@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SnapshotView: View {
     @ObservedObject var dataManager: AppDataManager
+    @ObservedObject var settings: UserSettings
 
     private var hrvValue: Double? {
         if let point = dataManager.dataPoints.first(where: { $0.title == "HRV" }) {
@@ -11,15 +12,27 @@ struct SnapshotView: View {
         return nil
     }
 
+    private func shouldShow(_ title: String) -> Bool {
+        switch title {
+        case "HRV": return settings.showHRV
+        case "Resting HR": return settings.showRestingHR
+        case "Sleep": return settings.showSleep
+        case "Mindful Minutes": return settings.showMindful
+        case "Steps": return settings.showSteps
+        case "Active Energy": return settings.showEnergy
+        default: return true
+        }
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                if let value = hrvValue {
+                if let value = hrvValue, settings.showHRV {
                     HRVGaugeView(hrv: value)
                         .frame(maxWidth: .infinity)
                         .listRowInsets(EdgeInsets())
                 }
-                ForEach(dataManager.dataPoints) { point in
+                ForEach(dataManager.dataPoints.filter { shouldShow($0.title) }) { point in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(point.title)
                             .font(.headline)
@@ -44,5 +57,5 @@ struct SnapshotView: View {
 }
 
 #Preview {
-    SnapshotView(dataManager: AppDataManager())
+    SnapshotView(dataManager: AppDataManager(), settings: UserSettings())
 }

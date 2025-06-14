@@ -14,10 +14,25 @@ class AppDataManager: NSObject, ObservableObject {
     private let weatherService = WeatherService()
 
     @Published var dataPoints: [DataPoint] = []
+    @Published private(set) var hrvHistory: [HRVRecord] = []
 
     override init() {
         super.init()
         locationManager.delegate = self
+        loadHistory()
+    }
+
+    private func loadHistory() {
+        if let data = UserDefaults.standard.data(forKey: "hrvHistory"),
+           let records = try? JSONDecoder().decode([HRVRecord].self, from: data) {
+            self.hrvHistory = records
+        }
+    }
+
+    private func saveHistory() {
+        if let data = try? JSONEncoder().encode(hrvHistory) {
+            UserDefaults.standard.set(data, forKey: "hrvHistory")
+        }
     }
 
     func requestAuthorization() {
@@ -64,6 +79,11 @@ class AppDataManager: NSObject, ObservableObject {
             format: { "\(Int($0 * 1000)) ms" }
         )
         newPoints.append(DataPoint(title: "HRV", value: hrv, timestamp: now))
+        if let ms = Int(hrv.replacingOccurrences(of: " ms", with: "")) {
+            hrvHistory.append(HRVRecord(date: now, value: ms))
+            hrvHistory = hrvHistory.filter { $0.date > now.addingTimeInterval(-60*60*24*30) }
+            saveHistory()
+        }
 
         let restingHR = await fetchMostRecentQuantity(
             identifier: .restingHeartRate,
