@@ -21,11 +21,11 @@ struct TrendsView: View {
 
 #Preview {
     let dm = AppDataManager()
-    dm.hrvHistory = [
+    dm.setHRVHistory([
         HRVRecord(date: .now.addingTimeInterval(-3600*24*4), value: 60),
         HRVRecord(date: .now.addingTimeInterval(-3600*24*3), value: 55),
         HRVRecord(date: .now.addingTimeInterval(-3600*24*2), value: 70),
         HRVRecord(date: .now.addingTimeInterval(-3600*24), value: 65)
-    ]
+    ])
     TrendsView(dataManager: dm)
 }
