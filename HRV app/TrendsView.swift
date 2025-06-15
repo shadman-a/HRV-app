@@ -8,7 +8,7 @@ struct TrendsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    ForEach(dataManager.metricHistories.keys.sorted(), id: \.elf) { key in
+                    ForEach(dataManager.metricHistories.keys.sorted(), id: \.self) { key in
                         if let records = dataManager.metricHistories[key] {
                             MetricChartCard(title: key, records: records)
                         }
