@@ -15,6 +15,8 @@ class AppDataManager: NSObject, ObservableObject {
 
     @Published var dataPoints: [DataPoint] = []
     @Published private(set) var hrvHistory: [HRVRecord] = []
+    /// In-memory history for all metrics keyed by title.
+    @Published private(set) var metricHistories: [String: [HealthRecord]] = [:]
 
     override init() {
         super.init()
@@ -26,6 +28,7 @@ class AppDataManager: NSObject, ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "hrvHistory"),
            let records = try? JSONDecoder().decode([HRVRecord].self, from: data) {
             self.hrvHistory = records
+            self.metricHistories["HRV"] = records.map { HealthRecord(date: $0.date, value: Double($0.value)) }
         }
     }
 
@@ -35,10 +38,24 @@ class AppDataManager: NSObject, ObservableObject {
         }
     }
 
+    /// Convert a formatted value string (e.g. "65 bpm") to a Double.
+    private func numericValue(from string: String) -> Double? {
+        let digits = string.filter { "0123456789.".contains($0) }
+        return Double(digits)
+    }
+
+    private func appendHistory(title: String, valueString: String, at date: Date) {
+        guard let value = numericValue(from: valueString) else { return }
+        let record = HealthRecord(date: date, value: value)
+        metricHistories[title, default: []].append(record)
+        metricHistories[title] = metricHistories[title]?.filter { $0.date > date.addingTimeInterval(-60*60*24*30) }
+    }
+
 #if DEBUG
     /// Allows previews and tests to provide sample HRV history data.
     func setHRVHistory(_ records: [HRVRecord]) {
         self.hrvHistory = records
+        self.metricHistories["HRV"] = records.map { HealthRecord(date: $0.date, value: Double($0.value)) }
     }
 
     /// Sample manager with pre-populated HRV history for previews.
@@ -102,6 +119,7 @@ class AppDataManager: NSObject, ObservableObject {
             hrvHistory.append(HRVRecord(date: now, value: ms))
             hrvHistory = hrvHistory.filter { $0.date > now.addingTimeInterval(-60*60*24*30) }
             saveHistory()
+            appendHistory(title: "HRV", valueString: hrv, at: now)
         }
 
         let restingHR = await fetchMostRecentQuantity(
@@ -110,12 +128,15 @@ class AppDataManager: NSObject, ObservableObject {
             format: { "\(Int($0.rounded())) bpm" }
         )
         newPoints.append(DataPoint(title: "Resting HR", value: restingHR, timestamp: now))
+        appendHistory(title: "Resting HR", valueString: restingHR, at: now)
 
         let sleep = await fetchSleepHours()
         newPoints.append(DataPoint(title: "Sleep", value: sleep, timestamp: now))
+        appendHistory(title: "Sleep", valueString: sleep, at: now)
 
         let mindful = await fetchMindfulMinutes()
         newPoints.append(DataPoint(title: "Mindful Minutes", value: mindful, timestamp: now))
+        appendHistory(title: "Mindful Minutes", valueString: mindful, at: now)
 
         let steps = await fetchSumQuantity(
             identifier: .stepCount,
@@ -123,6 +144,7 @@ class AppDataManager: NSObject, ObservableObject {
             format: { String(Int($0)) }
         )
         newPoints.append(DataPoint(title: "Steps", value: steps, timestamp: now))
+        appendHistory(title: "Steps", valueString: steps, at: now)
 
         let energy = await fetchSumQuantity(
             identifier: .activeEnergyBurned,
@@ -130,6 +152,7 @@ class AppDataManager: NSObject, ObservableObject {
             format: { "\(Int($0)) kcal" }
         )
         newPoints.append(DataPoint(title: "Active Energy", value: energy, timestamp: now))
+        appendHistory(title: "Active Energy", valueString: energy, at: now)
 
         await MainActor.run { self.dataPoints = newPoints }
     }
