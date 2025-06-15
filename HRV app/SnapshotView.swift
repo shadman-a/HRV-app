@@ -3,6 +3,13 @@ import SwiftUI
 struct SnapshotView: View {
     @ObservedObject var dataManager: AppDataManager
     @ObservedObject var settings: UserSettings
+    @StateObject private var insightVM: InsightViewModel
+
+    init(dataManager: AppDataManager, settings: UserSettings) {
+        self.dataManager = dataManager
+        self.settings = settings
+        _insightVM = StateObject(wrappedValue: InsightViewModel(dataProvider: { dataManager.dataPoints }))
+    }
 
     private var hrvValue: Double? {
         if let point = dataManager.dataPoints.first(where: { $0.title == "HRV" }) {
@@ -27,6 +34,8 @@ struct SnapshotView: View {
     var body: some View {
         NavigationStack {
             List {
+                InsightCardView(viewModel: insightVM)
+                    .listRowInsets(EdgeInsets())
                 if let value = hrvValue, settings.showHRV {
                     HRVGaugeView(hrv: value)
                         .frame(maxWidth: .infinity)
